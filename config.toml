@@ -1,0 +1,237 @@
+# Configuración del simulador de flota.
+# Los valores marcados como SUPUESTO no están verificados con fuentes reales:
+# son razonables para simular, pero conviene revisarlos antes de sacar conclusiones.
+
+seed = 42
+run_name = "base"
+start_date = "2026-06-01"
+days = 90
+
+[routing]
+# auto = ORS (perfil driving-hgv) si existe la variable de entorno ORS_API_KEY; si no, OSRM demo (perfil auto).
+provider = "auto"
+# OSRM calcula tiempos de auto; un camión tarda más. SUPUESTO.
+osrm_duration_factor = 1.3
+ors_duration_factor = 1.0
+
+[depot]
+name = "Córdoba"
+lat = -31.4167
+lon = -64.1833
+
+# weight = frecuencia relativa de viajes a cada destino.
+[[destinations]]
+name = "Rosario"
+lat = -32.9468
+lon = -60.6393
+weight = 4
+
+[[destinations]]
+name = "Buenos Aires"
+lat = -34.6037
+lon = -58.3816
+weight = 3
+
+[[destinations]]
+name = "Mendoza"
+lat = -32.8895
+lon = -68.8458
+weight = 2
+
+[[destinations]]
+name = "San Miguel de Tucumán"
+lat = -26.8083
+lon = -65.2176
+weight = 2
+
+[[destinations]]
+name = "Santa Fe"
+lat = -31.6333
+lon = -60.7000
+weight = 2
+
+[[destinations]]
+name = "Río Cuarto"
+lat = -33.1232
+lon = -64.3493
+weight = 2
+
+[[destinations]]
+name = "Villa María"
+lat = -32.4075
+lon = -63.2403
+weight = 2
+
+[[destinations]]
+name = "San Luis"
+lat = -33.2950
+lon = -66.3356
+weight = 1
+
+[[destinations]]
+name = "Santiago del Estero"
+lat = -27.7834
+lon = -64.2642
+weight = 1
+
+[[destinations]]
+name = "Bahía Blanca"
+lat = -38.7196
+lon = -62.2724
+weight = 1
+
+[fleet]
+size = 12
+# Variabilidad de consumo real respecto de la ficha técnica (desvío estándar relativo).
+truck_efficiency_sd = 0.05
+driver_efficiency_sd = 0.07
+trip_noise_sd = 0.03
+substitute_driver_prob = 0.10
+extra_drivers = 4
+
+# Fichas técnicas. Consumos y dimensiones: SUPUESTO (órdenes de magnitud típicos).
+[truck_types.semirremolque_5e]
+share = 0.5
+axles = 5
+toll_category = "5-6E"
+tank_l = 600
+height_m = 4.1
+width_m = 2.6
+length_m = 18.6
+weight_t = 45
+axleload_t = 10.5
+payload_kg = 28000
+l_100km_empty = 28
+l_100km_full = 38
+
+[truck_types.chasis_3e]
+share = 0.33
+axles = 3
+toll_category = "3-4E"
+tank_l = 300
+height_m = 3.8
+width_m = 2.6
+length_m = 12.0
+weight_t = 24
+axleload_t = 10
+payload_kg = 14000
+l_100km_empty = 21
+l_100km_full = 28
+
+[truck_types.liviano_2e]
+share = 0.17
+axles = 2
+toll_category = "2E"
+tank_l = 150
+height_m = 3.2
+width_m = 2.3
+length_m = 8.0
+weight_t = 10
+axleload_t = 6
+payload_kg = 4500
+l_100km_empty = 14
+l_100km_full = 18
+
+[operations]
+depart_hour = [5, 8]
+daily_driving_hours = 9      # SUPUESTO: verificar normativa de jornada de conducción
+rest_hours = 10
+unload_hours = [2, 4]
+depot_rest_days = [0, 2]
+fuel_stop_minutes = [15, 30]
+outbound_load = [0.6, 1.0]   # fracción de la carga útil
+return_load = [0.0, 0.5]
+gps_interval_min = 5
+parked_ping_min = 60
+gps_drop_rate = 0.01
+odometer_start_km = [80000, 600000]
+odometer_typo_prob = 0.01
+
+[fuel]
+product = "Gas Oil Grado 2"
+fresh_days = 60              # precio "reciente" = informado hace menos de N días
+min_group_size = 5
+refuel_threshold = 0.35      # fracción de tanque que dispara buscar estación
+corridor_km = 2.0            # distancia máxima de la estación a la ruta
+preferred_brand = "YPF"      # bandera con la que la empresa tiene tarjeta de flota
+preferred_brand_prob = 0.8
+preferred_discount = 0.03    # SUPUESTO
+full_fill_prob = 0.8
+station_price_sd = 0.02
+# Aumentos de precio: el líder cambia cada ~N días y el resto lo sigue con demora.
+leader_brand = "YPF"
+increase_every_days = [25, 35]
+increase_pct = [0.01, 0.03]
+follower_lag_days = [0, 5]
+
+[tolls]
+match_radius_km = 0.2
+merge_km = 2.0
+peak_weekdays_only = true
+peak_hours = [[7, 10], [17, 20]]   # SUPUESTO: reemplazar con el cuadro tarifario vigente
+
+# Tarifas [fuera de pico, pico] en ARS por categoría.
+# SUPUESTO: aproximaciones a partir de notas de prensa sobre la Res. 248/2026 (Corredores Viales).
+# No hay dataset público de tarifas; reemplazar con el cuadro oficial o con resúmenes de TelePASE.
+[tolls.tariffs]
+"2E" = [2600, 3100]
+"3-4E" = [3750, 4500]
+"5-6E" = [5200, 6000]
+"7+E" = [6250, 7500]
+
+# Probabilidades de anomalías inyectadas (con etiqueta en _ground_truth/anomalies.csv).
+[anomalies]
+overfill_prob = 0.02         # por carga: litros facturados mayores a lo que entra en el tanque
+overfill_extra = [0.1, 0.35] # litros de más, como fracción del tanque
+duplicate_prob = 0.015       # por carga: segunda transacción en la misma estación minutos después
+siphon_prob = 0.015          # por parada: caída de combustible sin carga asociada
+siphon_min_l = 40
+siphon_max_tank_frac = 0.3
+siphon_gradual_prob = 0.0    # fracción de robos repartidos en 3 a 6 lecturas
+foreign_card_prob = 0.008    # por camión y día: tarjeta usada lejos del camión
+foreign_min_km = 80
+
+# Fenómenos legítimos que se parecen a anomalías (etiquetados en _ground_truth/legit_events.csv).
+# En el escenario base están apagados: sensor ideal, sin equipos de frío, sin demoras.
+[realism]
+sensor_noise_pct = [1.5, 1.5]          # desvío del ruido, sorteado por camión
+sensor_gain_sd = 0.0                   # error de calibración multiplicativo
+sensor_offset_sd_pct = 0.0             # error de calibración aditivo
+sensor_drift_pct_per_sqrt_day = 0.0    # deriva lenta (paseo aleatorio)
+sensor_stuck_prob_per_day = 0.0        # sensor que repite la última lectura
+sensor_stuck_hours = [2, 12]
+reefer_share_of_semis = 0.0            # semis refrigerados
+reefer_main_tank_prob = 0.5            # el equipo toma del tanque principal (si no, tiene tanque propio)
+reefer_l_per_h = 2.5                   # SUPUESTO
+reefer_tank_l = 200
+shared_card_prob = 0.0                 # por carga: el chofer usa la tarjeta de otro camión
+delayed_posting_station_share = 0.0    # estaciones que informan con horas de demora
+delayed_posting_hours = [1, 12]
+tx_clock_jitter_min = 0.0              # desfase entre el reloj de la tarjeta y el del GPS
+
+# Escenarios: se superponen a los valores de arriba con `python -m fleetsim --scenario <nombre>`.
+[scenarios.realista.realism]
+sensor_noise_pct = [1.0, 2.5]
+sensor_gain_sd = 0.04
+sensor_offset_sd_pct = 3.0
+sensor_drift_pct_per_sqrt_day = 0.4
+sensor_stuck_prob_per_day = 0.01
+reefer_share_of_semis = 0.6
+shared_card_prob = 0.01
+delayed_posting_station_share = 0.05
+tx_clock_jitter_min = 3.0
+
+[scenarios.realista.anomalies]
+overfill_extra = [0.03, 0.3]
+siphon_min_l = 20
+siphon_gradual_prob = 0.4
+
+[planner]
+reserve_frac = 0.10            # mínimo en el tanque al llegar a cualquier estación
+end_reserve_frac = 0.15        # mínimo al llegar a destino
+consumption_margin = 1.10      # margen de seguridad sobre el consumo estimado
+estimated_price_risk = 0.03    # prima sobre precios estimados (la estación no informa hace más de 60 días)
+bucket_km = 20                 # se considera la estación más barata de cada tramo de N km
+stop_minutes = 20
+cost_per_hour_ars = 30000      # SUPUESTO: costo de una hora de camión + chofer
+policy_threshold = 0.35        # comparación: el chofer carga cuando el tanque baja de este nivel
