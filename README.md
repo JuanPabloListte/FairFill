@@ -155,3 +155,7 @@ Los valores marcados como `SUPUESTO` en `config.toml` no están verificados. Los
 - **OSRM** usa el perfil de auto: no respeta restricciones de altura ni de peso. Con ORS sí, en la medida en que OSM las tenga cargadas.
 - **Consumo:** no depende de la pendiente ni de la velocidad.
 - **Normativa de jornada de conducción:** no verificada.
+
+## Licencia
+
+Código bajo licencia [MIT](LICENSE). Los datos que descarga tienen sus propias licencias: precios de la Secretaría de Energía (CC-BY-4.0) y OpenStreetMap (ODbL).
