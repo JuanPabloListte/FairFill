@@ -43,13 +43,13 @@ data.tolls.forEach(t => L.circleMarker([t.lat, t.lon], {radius: 5, color: '#6e40
 
 
 def write_map(path: Path, res: dict, origin: dict, dest: dict, truck: dict):
-    r, eb = res["route"], res["eval_best"]
+    r, eb = res["route"], res["eval_best"] or {}
     step = max(len(r.lat) // 1500, 1)
     rows = []
     for s in res["plan_rows"]:
         cls, tag = ("ok", "confirmado") if s["precio_confirmado"] else ("est", "estimado")
         rows.append(
-            f"<tr><td class='num'>{s['km']}</td><td>{s['hora']}</td><td>{html.escape(str(s['estacion']))} "
+            f"<tr><td class='num'>{s['km']:.0f}</td><td>{s['hora']:%d/%m %H:%M}</td><td>{html.escape(str(s['estacion']))} "
             f"({html.escape(str(s['bandera']))})</td><td>{html.escape(s['localidad'])}</td>"
             f"<td class='num'>{s['llega_con_l']} L</td><td class='num'><b>{s['cargar_l']} L</b></td>"
             f"<td class='num {cls}'>${s['precio']:,} {tag}</td></tr>")
@@ -57,7 +57,7 @@ def write_map(path: Path, res: dict, origin: dict, dest: dict, truck: dict):
         "route": [[round(a, 5), round(b, 5)] for a, b in zip(r.lat[::step], r.lon[::step])],
         "origin": [origin["lat"], origin["lon"]], "dest": [dest["lat"], dest["lon"]],
         "stops": [{"lat": s["lat"], "lon": s["lon"], "ok": s["precio_confirmado"],
-                   "label": f"km {s['km']}: cargar {s['cargar_l']} L en {s['estacion']} a ${s['precio']:,}"}
+                   "label": f"km {s['km']:.0f}: cargar {s['cargar_l']} L en {s['estacion']} a ${s['precio']:,}"}
                   for s in res["plan_rows"]],
         "tolls": [{"lat": t["lat"], "lon": t["lon"],
                    "label": f"{t['nombre'] or 'Peaje'} ({t['operador'] or 'operador desconocido'}): ${t['importe']:,.0f}"}
@@ -66,7 +66,7 @@ def write_map(path: Path, res: dict, origin: dict, dest: dict, truck: dict):
     tolls = sum(t["importe"] for t in res["tolls"])
     ep = res["eval_base"]
     saving = (f" Frente a cargar al bajar del {truck['threshold'] * 100:.0f}% en la primera estación: "
-              f"ahorro de ${ep['total'] - eb['total']:,.0f}.") if ep.get("total", float("inf")) != float("inf") else ""
+              f"ahorro de ${ep['total'] - eb['total']:,.0f}.") if ep and eb else ""
     page = (TEMPLATE
             .replace("__TITLE__", html.escape(f"{origin['name']} → {dest['name']}"))
             .replace("__SUBTITLE__", html.escape(

@@ -145,6 +145,42 @@ demo no lo permite). Casi todas las paradas elegidas son YPF, cuyo precio se est
 ~14 estaciones que informan al día: el plan es tan bueno como esa estimación. Tampoco considera
 horarios de atención de las estaciones ni el tope de horas de manejo.
 
+## API
+
+```bash
+pip install -r requirements.txt
+python -m fleetsim --scenario realista && python -m detector --run output/realista   # datos de la flota y alertas
+uvicorn api.main:app --reload                                                      # http://localhost:8000/docs
+```
+
+Backend en FastAPI sobre la misma lógica que las herramientas de terminal (`planner/service.py`).
+Al arrancar carga una sola vez las estaciones con sus precios, las cabinas de peaje y el ruteador.
+La documentación interactiva queda en `/docs`.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/salud` | Estado: proveedor de rutas, estaciones y cabinas cargadas, corrida activa |
+| `GET` | `/lugares?q=` | Autocompletado de localidades (config + Georef) |
+| `GET` | `/camiones` · `/camiones/{id}` | Ficha técnica y consumo aprendido por el detector |
+| `POST` | `/planes` | Plan de un viaje: ruta, paradas (dónde y cuánto cargar), peajes, costos y ahorro frente a la política habitual |
+| `GET` | `/alertas?tipo=&camion_id=&desde=&hasta=` | Alertas del detector, las más recientes primero |
+| `GET` | `/alertas/resumen` | Total, pesos en riesgo y conteos por tipo y por camión |
+
+Ejemplo:
+
+```json
+POST /planes
+{"origen": "Córdoba", "destino": "Buenos Aires", "camion_id": "CAM-001", "carga_kg": 25000, "litros_iniciales": 250}
+```
+
+Errores: `404` camión inexistente, `422` datos inválidos o lugar no encontrado, `502` falla del
+ruteo (por ejemplo, `evitar_peajes` sin `ORS_API_KEY`), `503` falta generar la corrida.
+Variables de entorno: `FAIRFILL_RUN` (corrida a usar; por defecto `output/realista`),
+`FAIRFILL_CORS` (orígenes permitidos; por defecto `http://localhost:5173`, el de Vite),
+`ORS_API_KEY` (rutas para camión).
+
+Los tests de la API (`tests/test_api.py`) no usan la red: inyectan estaciones, peajes y rutas falsos.
+
 ## Supuestos y limitaciones
 
 Los valores marcados como `SUPUESTO` en `config.toml` no están verificados. Los más importantes:
