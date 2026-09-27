@@ -181,6 +181,29 @@ Variables de entorno: `FAIRFILL_RUN` (corrida a usar; por defecto `output/realis
 
 Los tests de la API (`tests/test_api.py`) no usan la red: inyectan estaciones, peajes y rutas falsos.
 
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173, con la API corriendo en el puerto 8000
+```
+
+React 19 + TypeScript + Vite, con react-leaflet (mapas), TanStack Query (datos de la API),
+React Router y Tailwind CSS. En desarrollo, Vite reenvía `/api` al backend, así que no hace falta
+configurar CORS. Para apuntar a otra API: `VITE_API_URL`.
+
+| Pantalla | Qué muestra |
+|---|---|
+| Planificar viaje | Formulario con autocompletado de localidades; mapa con la ruta, las paradas (verde: precio confirmado, naranja: estimado) y los peajes; costos, ahorro y tabla de paradas |
+| Alertas | Resumen (alertas, pesos en riesgo), filtros por tipo y camión, y cada alerta con su explicación |
+| Flota | Consumo de ficha contra el real a la carga típica de cada camión |
+
+La comparación de flota es a la carga típica y no "vacío contra ficha" a propósito: como cada
+camión viaja con cargas parecidas, el modelo no logra separar el consumo vacío del agregado por
+tonelada, pero sí predice bien a la carga habitual. Contra la verdad del simulador, la diferencia
+mostrada tiene un error medio de 0,8 puntos porcentuales.
+
 ## Supuestos y limitaciones
 
 Los valores marcados como `SUPUESTO` en `config.toml` no están verificados. Los más importantes:

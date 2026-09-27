@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* Leaflet dibuja sus propios controles: que queden por debajo de menús y encabezados. */
+.leaflet-container { z-index: 0; font: inherit; }

@@ -21,8 +21,10 @@ class Camion(BaseModel):
     equipo_frio: str | None = Field(description="tanque_propio, tanque_principal o nulo")
     consumo_ficha_vacio_l100: float
     consumo_ficha_lleno_l100: float
-    consumo_modelo_vacio_l100: float | None = Field(None, description="aprendido por el detector, si hay datos")
-    consumo_modelo_l100_por_tonelada: float | None = None
+    carga_tipica_t: float | None = Field(None, description="carga promedio por km recorrido en la corrida")
+    consumo_ficha_carga_tipica_l100: float | None = None
+    consumo_real_carga_tipica_l100: float | None = Field(
+        None, description="modelo del detector evaluado a la carga típica; incluye el efecto del chofer")
     pares_modelo: int | None = Field(None, description="viajes tanque lleno a tanque lleno usados para ajustar el modelo")
 
 

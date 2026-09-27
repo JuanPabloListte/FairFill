@@ -185,7 +185,7 @@ def plan_route(route, ctx: PlannerContext, truck: dict, start_l: float | None, d
     p = Problem(length_km=route.length_km, rate_l_km=rate, tank_l=tank,
                 start_l=start_l if start_l is not None else tank / 2,
                 reserve_l=pc["reserve_frac"] * tank, end_reserve_l=pc["end_reserve_frac"] * tank,
-                end_value=end_value)
+                end_value=end_value, min_buy_l=pc.get("min_buy_l", 0.0))
     best = solve(p, stops)
     base = simulate_policy(p, stops, pc["policy_threshold"], lambda s: s.ref.bandera == fuel["preferred_brand"])
 

@@ -233,5 +233,6 @@ consumption_margin = 1.10      # margen de seguridad sobre el consumo estimado
 estimated_price_risk = 0.03    # prima sobre precios estimados (la estación no informa hace más de 60 días)
 bucket_km = 20                 # se considera la estación más barata de cada tramo de N km
 stop_minutes = 20
+min_buy_l = 50                 # carga mínima por parada
 cost_per_hour_ars = 30000      # SUPUESTO: costo de una hora de camión + chofer
 policy_threshold = 0.35        # comparación: el chofer carga cuando el tanque baja de este nivel

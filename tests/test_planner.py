@@ -70,3 +70,15 @@ def test_policy_refuels_to_full_below_threshold():
     stops = [Stop(100, 0, 100, 0), Stop(500, 0, 80, 0)]
     res = simulate_policy(_problem(), stops, threshold_frac=0.35)
     assert res["cost"] < np.inf and all(round(arr + l) == 300 for _, l, arr in res["plan"])
+
+
+def test_minimum_purchase_avoids_tiny_stops():
+    # A (km 100, cara) y B (km 200, barata). Sale con 60 L y gasta 0,4 L/km: llega a A con 20 L.
+    # Sin mínimo carga en A justo 30 L para llegar a B con reserva; con mínimo de 50 L carga 50.
+    stops = [Stop(100, 0, 100, 0), Stop(200, 0, 50, 0)]
+    p = dict(length_km=400, rate_l_km=0.4, tank_l=300, start_l=60, reserve_l=10, end_reserve_l=10)
+    free = solve(_problem(**p), stops)
+    assert [(j, round(l)) for j, l, _ in free["plan"]][0] == (0, 30)
+    capped = solve(_problem(**p, min_buy_l=50), stops)
+    assert [(j, round(l)) for j, l, _ in capped["plan"]][0] == (0, 50)
+    assert all(l >= 50 - 1e-6 for _, l, _ in capped["plan"])

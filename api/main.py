@@ -71,14 +71,15 @@ def create_app(context: PlannerContext | None = None, run_dir: Path | None = Non
     @app.get("/camiones", response_model=list[Camion], tags=["flota"])
     def camiones(request: Request):
         trucks = trucks_or_503(request)
-        return [_camion(tid, row, load_consumption_model(run(request))) for tid, row in trucks.iterrows()]
+        model, loads = load_consumption_model(run(request)), _typical_loads(run(request))
+        return [_camion(tid, row, model, loads) for tid, row in trucks.iterrows()]
 
     @app.get("/camiones/{camion_id}", response_model=Camion, tags=["flota"])
     def camion(camion_id: str, request: Request):
         trucks = trucks_or_503(request)
         if camion_id not in trucks.index:
             raise HTTPException(404, f"no existe el camión {camion_id}")
-        return _camion(camion_id, trucks.loc[camion_id], load_consumption_model(run(request)))
+        return _camion(camion_id, trucks.loc[camion_id], load_consumption_model(run(request)), _typical_loads(run(request)))
 
     @app.post("/planes", response_model=PlanResponse, tags=["planificador"])
     def planes(req: PlanRequest, request: Request):
@@ -123,17 +124,35 @@ def create_app(context: PlannerContext | None = None, run_dir: Path | None = Non
     return app
 
 
-def _camion(tid: str, t: pd.Series, model: pd.DataFrame | None) -> Camion:
+def _typical_loads(run_dir: Path) -> pd.Series:
+    """Toneladas promedio por km recorrido de cada camión."""
+    path = run_dir / "trips.csv"
+    if not path.exists():
+        return pd.Series(dtype=float)
+    t = pd.read_csv(path)
+    t["tkm"] = t["carga_kg"] / 1000 * t["km_odometro"]
+    g = t.groupby("truck_id")[["tkm", "km_odometro"]].sum()
+    return g["tkm"] / g["km_odometro"]
+
+
+def _camion(tid: str, t: pd.Series, model: pd.DataFrame | None, loads: pd.Series) -> Camion:
+    """El modelo separa mal "vacío" de "por tonelada" (cada camión viaja con cargas parecidas), pero
+    predice bien a la carga típica: por eso se compara ficha contra real a esa carga."""
     m = model.loc[tid] if model is not None and tid in model.index else None
     fitted = m is not None and pd.notna(m["l_100km_vacio"])
+    tons = float(loads[tid]) if tid in loads.index else None
+    ficha = None
+    if tons is not None:
+        ratio = min(tons * 1000 / float(t["carga_util_kg"]), 1.0)
+        ficha = float(t["consumo_ficha_vacio_l100"]) + (float(t["consumo_ficha_lleno_l100"]) - float(t["consumo_ficha_vacio_l100"])) * ratio
     return Camion(
         id=tid, patente=t["patente"], tipo=t["tipo"], ejes=int(t["ejes"]), categoria_peaje=t["categoria_peaje"],
         tanque_l=float(t["tanque_l"]), carga_util_kg=float(t["carga_util_kg"]),
         equipo_frio=t.get("equipo_frio") or None,
         consumo_ficha_vacio_l100=float(t["consumo_ficha_vacio_l100"]),
         consumo_ficha_lleno_l100=float(t["consumo_ficha_lleno_l100"]),
-        consumo_modelo_vacio_l100=float(m["l_100km_vacio"]) if fitted else None,
-        consumo_modelo_l100_por_tonelada=float(m["l_100tkm"]) if fitted else None,
+        carga_tipica_t=tons, consumo_ficha_carga_tipica_l100=ficha,
+        consumo_real_carga_tipica_l100=float(m["l_100km_vacio"] + m["l_100tkm"] * tons) if fitted and tons is not None else None,
         pares_modelo=int(m["pares"]) if m is not None else None,
     )
 

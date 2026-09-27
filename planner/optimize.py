@@ -31,6 +31,7 @@ class Problem:
     reserve_l: float      # mínimo al llegar a cualquier estación
     end_reserve_l: float  # mínimo al llegar a destino
     end_value: float      # valor por litro que sobra al llegar (se usa en el próximo viaje)
+    min_buy_l: float = 0.0  # carga mínima por parada: nadie para a cargar 10 litros
 
 
 def _key(x: float) -> float:
@@ -75,8 +76,10 @@ def solve(p: Problem, stops: list[Stop]) -> dict:
             for k in range(j + 1, n):
                 targets.add(back_offset + p.rate_l_km * (kms[k] - s.km + stops[k].offset_km) + p.reserve_l)
             targets.add(back_offset + p.rate_l_km * (p.length_km - s.km) + p.end_reserve_l)
+            if p.min_buy_l:
+                targets.add(arrival + p.min_buy_l)  # si lo justo es menos que el mínimo, cargar el mínimo
             for target in targets:
-                if target > p.tank_l + 1e-6 or target <= arrival + 1e-6:
+                if target > p.tank_l + 1e-6 or target < arrival + max(p.min_buy_l, 1e-6) - 1e-6:
                     continue
                 liters = target - arrival
                 new_cost = cost + liters * s.price + s.stop_cost
